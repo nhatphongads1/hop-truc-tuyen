@@ -500,7 +500,7 @@ async function doJoin() {
       return;
     }
     toast('Đang xin vào phòng...');
-    const r = await wapi('/api/join', 'POST', { code, password, identity: myIdentity });
+    const r = await wapi('/api/join', 'POST', { code, password, identity: myIdentity, name: myName });
     if (r.status === 'ok' && r.token) {
       await connectRoom(s.lkUrl, r.token);
     } else if (r.status === 'waiting') {

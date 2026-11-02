@@ -586,6 +586,17 @@ async function connectRoom(lkUrl, token) {
   unreadChat = 0; updateChatBadge();
   renderTiles(); renderPeople(); updateCount();
   show('scr-room');
+  // Mở khóa audio cho trình duyệt (autoplay policy) — phải gọi sau khi user đã tương tác
+  try { await room.startAudio(); } catch (e) { console.warn('startAudio:', e.message); }
+  // Nếu trình duyệt vẫn chặn, hiện nút bấm để mở tiếng
+  try {
+    const canPlay = room.canPlaybackAudio;
+    if (!canPlay) {
+      toast('Bấm vào màn hình 1 lần để bật tiếng 🔊', 4000);
+      const unlock = () => { room.startAudio().catch(()=>{}); document.removeEventListener('click', unlock); };
+      document.addEventListener('click', unlock);
+    }
+  } catch (e) {}
   if (isHost && !getSettings().devToken) startPendingPoll();
   if (!camOn && !micOn) toast('Vào phòng ở chế độ xem (không bật được camera/mic)');
 }

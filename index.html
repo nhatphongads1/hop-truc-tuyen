@@ -544,7 +544,14 @@ async function connectRoom(lkUrl, token) {
   room
     .on(RoomEvent.ParticipantConnected, () => { renderTiles(); renderPeople(); updateCount(); })
     .on(RoomEvent.ParticipantDisconnected, p => { delete remoteHands[p.identity]; renderTiles(); renderPeople(); updateCount(); })
-    .on(RoomEvent.TrackSubscribed, () => renderTiles())
+    .on(RoomEvent.TrackSubscribed, (track) => {
+      // FIX: gắn audio track vào thẻ <audio> để phát tiếng (trước đây chỉ gắn video)
+      if (track && track.kind === Track.Kind.Audio) {
+        try { track.attach(); } catch (e) {}
+        try { room.startAudio(); } catch (e) {}
+      }
+      renderTiles();
+    })
     .on(RoomEvent.TrackUnsubscribed, () => renderTiles())
     .on(RoomEvent.TrackMuted, () => { renderTiles(); renderPeople(); })
     .on(RoomEvent.TrackUnmuted, () => { renderTiles(); renderPeople(); })

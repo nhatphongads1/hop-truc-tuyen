@@ -566,9 +566,23 @@ async function connectRoom(lkUrl, token) {
   try { await room.localParticipant.setMetadata(JSON.stringify({ name: myName, host: isHost })); } catch (e) {}
 
   // Bật camera + mic (từng cái try/catch riêng — lỗi cái nào bỏ cái đó)
-  try { await room.localParticipant.setCameraEnabled(true); camOn = true; }
+  // Tối ưu: camera 640x480@24fps cho nhẹ băng thông, mic có chống ồn/vọng
+  try {
+    await room.localParticipant.setCameraEnabled(true, {
+      resolution: { width: 640, height: 480 },
+      frameRate: 24,
+    });
+    camOn = true;
+  }
   catch (e) { camOn = false; console.warn('camera lỗi:', e.message); }
-  try { await room.localParticipant.setMicrophoneEnabled(true); micOn = true; }
+  try {
+    await room.localParticipant.setMicrophoneEnabled(true, {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    });
+    micOn = true;
+  }
   catch (e) { micOn = false; console.warn('mic lỗi:', e.message); }
   syncCtlButtons();
 
@@ -732,7 +746,10 @@ async function toggleCam() {
 async function toggleShare() {
   if (!room) return;
   try {
-    await room.localParticipant.setScreenShareEnabled(!sharing);
+    // Tối ưu: chia sẻ 720p@15fps cho nhẹ băng thông, vẫn đủ rõ chữ
+    await room.localParticipant.setScreenShareEnabled(!sharing, {
+      video: { width: 1280, height: 720, frameRate: 15 },
+    });
     sharing = !sharing;
     toast(sharing ? 'Bạn đang chia sẻ màn hình' : 'Đã dừng chia sẻ màn hình');
   } catch (e) { toast('Không chia sẻ được: ' + e.message); }
@@ -1041,7 +1058,7 @@ function startRecording() {
     const mixed = new MediaStream([...vs.getVideoTracks(), ...dest.stream.getAudioTracks()]);
     const mime = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
       .find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
-    const mr = new MediaRecorder(mixed, mime ? { mimeType: mime, videoBitsPerSecond: 4000000 } : undefined);
+    const mr = new MediaRecorder(mixed, mime ? { mimeType: mime, videoBitsPerSecond: 2500000, audioBitsPerSecond: 128000 } : undefined);
     const chunks = [];
     mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
     mr.onstop = () => {
